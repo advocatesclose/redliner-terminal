@@ -513,43 +513,47 @@ pre.code-block {
             <span class="line2">Publish everywhere.</span>
         </h1>
         <div class="hero-subhead">
-            <span class="comment-slash">//</span> Edit a document. The redline, the PDF, the Word file,<br>
-            <span class="comment-slash">//</span> and the HTML update simultaneously.
+            <span class="comment-slash">//</span> Edit a document. The redline, the PDF, the Word file, and the HTML update simultaneously — not because you asked, but because that’s how the system works.
         </div>
     </div>
     <div class="hero-code reveal">
-<pre class="code-block"><span class="kw">static</span> <span class="kw">func</span> <span class="fn">batchRedline</span><span class="punc">(</span>jobs<span class="punc">:</span> <span class="punc">[</span><span class="tp">RedlineJob</span><span class="punc">]</span><span class="punc">)</span> <span class="kw">async</span> <span class="kw">throws</span> <span class="punc">-></span> <span class="punc">[</span><span class="tp">RedlineResult</span><span class="punc">]</span> <span class="punc">{</span>
-    <span class="kw">try</span> <span class="kw">await</span> <span class="fn">withThrowingTaskGroup</span><span class="punc">(</span>of<span class="punc">:</span> <span class="tp">RedlineResult</span><span class="prop">.self</span><span class="punc">)</span> <span class="punc">{</span> group <span class="kw">in</span>
-        <span class="kw">for</span> job <span class="kw">in</span> jobs <span class="punc">{</span>
-            group<span class="punc">.</span><span class="fn">addTask</span> <span class="punc">{</span>
-                <span class="kw">let</span> start <span class="punc">=</span> <span class="fn">CFAbsoluteTimeGetCurrent</span><span class="punc">()</span>
-                <span class="kw">let</span> outputURL <span class="punc">=</span> <span class="kw">try</span> <span class="kw">await</span> <span class="fn">redline</span><span class="punc">(</span>base<span class="punc">:</span> job<span class="prop">.baseURL</span><span class="punc">,</span> modified<span class="punc">:</span> job<span class="prop">.modifiedURL</span><span class="punc">)</span>
-                <span class="kw">let</span> duration <span class="punc">=</span> <span class="fn">CFAbsoluteTimeGetCurrent</span><span class="punc">()</span> <span class="punc">-</span> start
-                <span class="kw">return</span> <span class="tp">RedlineResult</span><span class="punc">(</span>label<span class="punc">:</span> job<span class="prop">.label</span><span class="punc">,</span> outputURL<span class="punc">:</span> outputURL<span class="punc">,</span> duration<span class="punc">:</span> duration<span class="punc">)</span>
-            <span class="punc">}</span>
-        <span class="punc">}</span>
-        <span class="kw">var</span> results<span class="punc">:</span> <span class="punc">[</span><span class="tp">RedlineResult</span><span class="punc">]</span> <span class="punc">=</span> <span class="punc">[]</span>
-        <span class="kw">for</span> <span class="kw">try</span> <span class="kw">await</span> result <span class="kw">in</span> group <span class="punc">{</span>
-            results<span class="punc">.</span><span class="fn">append</span><span class="punc">(</span>result<span class="punc">)</span>
-        <span class="punc">}</span>
-        <span class="kw">return</span> results
-    <span class="punc">}</span>
-<span class="punc">}</span></pre>
+<pre class="code-block">func batchRedline(
+    pairs: [(base: URL, modified: URL)],
+    outputDir: URL
+) async throws -> [URL] {
+    try await withThrowingTaskGroup(of: URL.self) { group in
+        for pair in pairs {
+            group.addTask {
+                let connection = NSXPCConnection(
+                    serviceName: "com.advocatesclose.RedlineService"
+                )
+                defer { connection.invalidate() }
+                // Each redline gets its own XPC process
+                return try await connection.redline(
+                    base: pair.base,
+                    modified: pair.modified,
+                    output: outputDir
+                )
+            }
+        }
+        return try await group.reduce(into: []) { $0.append($1) }
+    }
+}</pre>
     </div>
 </section>
 
 <!-- Opening Statement -->
 <section class="statement-section">
     <div class="reveal">
-        <p class="statement">Programmers have developed an astonishing array of tools for managing complexity. We are interested in bringing these tools to bear on <span class="blue">the practice of law.</span></p>
-        <p class="statement-attribution">&mdash; Advocates Close, New York</p>
+        <p class="statement">Programmers have developed an astonishing array of tools for managing complexity. We are interested in bringing these tools to bear on <em>the practice of law.</em></p>
+        <p class="statement-attribution">Advocates Close — New York</p>
     </div>
 </section>
 
 <!-- Essay -->
 <section class="essay-section">
     <div class="reveal">
-        <div class="section-label">on complexity</div>
+        <div class="section-label">On Complexity</div>
     </div>
     <div class="reveal">
         <p class="lead">Computer programmers as we know them today have existed for less than a century. They are not credentialed or licensed. They do not sit an exam.</p>
@@ -583,44 +587,40 @@ pre.code-block {
             <div class="arch-number">01</div>
             <div class="arch-content">
                 <div class="arch-title">XPC Services</div>
-                <div class="arch-desc">Document conversion and redline generation run in dedicated XPC services&thinsp;&mdash;&thinsp;separate processes with independent memory spaces, managed by launchd, created and destroyed on demand.</div>
+                <div class="arch-desc">Document conversion and redline generation run in dedicated XPC services — separate processes with independent memory spaces, managed by <code>launchd</code>, created and destroyed on demand. Each service does one thing. The app coordinates.</div>
             </div>
         </div>
         <div class="arch-item reveal">
             <div class="arch-number">02</div>
             <div class="arch-content">
                 <div class="arch-title">Parallel Redlining</div>
-                <div class="arch-desc">The redline engine implements a word-level Myers diff. Multiple redlines execute in parallel&thinsp;&mdash;&thinsp;each with its own NSXPCConnection, its own handler, its own coordinated file access via NSFileCoordinator.</div>
+                <div class="arch-desc">The redline engine implements a word-level Myers diff. Multiple redlines execute in parallel — each with its own <code>NSXPCConnection</code>, its own handler, its own coordinated file access via <code>NSFileCoordinator</code>.</div>
             </div>
         </div>
         <div class="arch-item reveal">
             <div class="arch-number">03</div>
             <div class="arch-content">
                 <div class="arch-title">Zero-Copy IPC</div>
-                <div class="arch-desc">No document content crosses the XPC boundary. The app passes file paths; the services read, process, and write directly to the filesystem.</div>
+                <div class="arch-desc">No document content crosses the XPC boundary. The app passes file paths; the services read, process, and write directly to the filesystem. The main process never holds conversion artifacts in memory.</div>
             </div>
         </div>
     </div>
 </section>
 
 <div class="arch-code reveal">
-<pre class="code-block"><span class="kw">let</span> connection <span class="punc">=</span> <span class="tp">NSXPCConnection</span><span class="punc">(</span>serviceName<span class="punc">:</span> <span class="str">"com.advocatesclose.markup.RedlineService"</span><span class="punc">)</span>
-connection<span class="prop">.remoteObjectInterface</span> <span class="punc">=</span> <span class="tp">NSXPCInterface</span><span class="punc">(</span>with<span class="punc">:</span> <span class="tp">RedlineServiceProtocol</span><span class="prop">.self</span><span class="punc">)</span>
-connection<span class="punc">.</span><span class="fn">resume</span><span class="punc">()</span>
+<pre class="code-block">let connection = NSXPCConnection(
+    serviceName: "com.advocatesclose.RedlineService"
+)
+connection.remoteObjectInterface = NSXPCInterface(
+    with: RedlineServiceProtocol.self
+)
+connection.resume()
 
-<span class="kw">let</span> proxy <span class="punc">=</span> connection<span class="punc">.</span><span class="fn">remoteObjectProxyWithErrorHandler</span> <span class="punc">{</span> error <span class="kw">in</span>
-    continuation<span class="punc">.</span><span class="fn">resume</span><span class="punc">(</span>throwing<span class="punc">:</span> error<span class="punc">)</span>
-    connection<span class="punc">.</span><span class="fn">invalidate</span><span class="punc">()</span>
-<span class="punc">}</span> <span class="kw">as</span><span class="punc">!</span> <span class="tp">RedlineServiceProtocol</span>
-
-proxy<span class="punc">.</span><span class="fn">redline</span><span class="punc">(</span>
-    base<span class="punc">:</span> baseURL<span class="prop">.path</span><span class="punc">,</span>
-    modified<span class="punc">:</span> modifiedURL<span class="prop">.path</span><span class="punc">,</span>
-    output<span class="punc">:</span> outputURL<span class="prop">.path</span>
-<span class="punc">)</span> <span class="punc">{</span> path<span class="punc">,</span> error <span class="kw">in</span>
-    <span class="cmt">// ...</span>
-    connection<span class="punc">.</span><span class="fn">invalidate</span><span class="punc">()</span>
-<span class="punc">}</span></pre>
+let service = connection.remoteObjectProxy as! RedlineServiceProtocol
+try await service.generateRedline(
+    base: baseURL.path,
+    modified: modifiedURL.path
+)</pre>
 </div>
 
 <!-- Privacy -->
@@ -639,19 +639,19 @@ proxy<span class="punc">.</span><span class="fn">redline</span><span class="punc
     <div class="comparison-list">
         <div class="comparison-pair reveal">
             <div class="comparison-old">Print to Word, then print to PDF — two jobs</div>
-            <div class="comparison-new">One edit propagates to HTML, PDF, and DOCX <span class="blue">simultaneously</span> via XPC</div>
+            <div class="comparison-new"><strong>One edit</strong> propagates to HTML, PDF, and DOCX simultaneously via XPC</div>
         </div>
         <div class="comparison-pair reveal">
             <div class="comparison-old">Run a redline manually after each revision</div>
-            <div class="comparison-new">Redlines exist as a matter of <span class="blue">process</span> — they are produced, not requested</div>
+            <div class="comparison-new"><strong>Redlines exist</strong> as a matter of process — they are produced, not requested</div>
         </div>
         <div class="comparison-pair reveal">
             <div class="comparison-old">Choose between privacy and performance</div>
-            <div class="comparison-new"><span class="blue">XPC isolation</span> — separate process memory, no content on the wire, no trade-off</div>
+            <div class="comparison-new"><strong>XPC isolation</strong> — separate process memory, no content on the wire, no trade-off</div>
         </div>
         <div class="comparison-pair reveal">
             <div class="comparison-old">Wait for one conversion to finish before starting the next</div>
-            <div class="comparison-new"><span class="blue">Parallel execution</span> — ten redlines at once, each in its own process</div>
+            <div class="comparison-new"><strong>Parallel execution</strong> — ten redlines at once, each in its own process</div>
         </div>
     </div>
 </section>
@@ -677,6 +677,15 @@ proxy<span class="punc">.</span><span class="fn">redline</span><span class="punc
             <span>Pandoc</span>
             <span>AES-GCM</span>
         </div>
+    </div>
+</section>
+
+<!-- Security -->
+<section class="statement-section">
+    <div class="reveal">
+        <p class="statement">Privacy by Architecture</p>
+        <p class="statement-sub">XPC services run in separate processes with separate memory. No document content crosses the process boundary — only file paths. Edit transactions are encrypted with AES-GCM before they touch disk. Privacy is enforced by the structure of the system, not by a policy that someone might override.</p>
+        <p class="statement-sub">XPC Process Isolation &middot; Zero-Copy IPC &middot; AES-GCM Encryption &middot; NSFileCoordinator</p>
     </div>
 </section>
 
