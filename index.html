@@ -32,6 +32,7 @@
 
 html {
     scroll-behavior: smooth;
+    scroll-snap-type: y mandatory;
 }
 
 body {
@@ -107,6 +108,7 @@ body {
     justify-content: center;
     padding: 120px 40px 80px;
     text-align: center;
+    scroll-snap-align: start;
 }
 
 .hero-prompt {
@@ -179,6 +181,7 @@ pre.code-block {
     justify-content: center;
     padding: 80px 40px;
     text-align: center;
+    scroll-snap-align: start;
 }
 
 .statement {
@@ -215,6 +218,7 @@ pre.code-block {
     padding: 120px 40px 200px;
     max-width: 620px;
     margin: 0 auto;
+    scroll-snap-align: start;
 }
 
 .section-label {
@@ -244,6 +248,7 @@ pre.code-block {
     padding: 0 40px 120px;
     max-width: 720px;
     margin: 0 auto;
+    scroll-snap-align: start;
 }
 
 .arch-list {
@@ -301,6 +306,7 @@ pre.code-block {
     padding: 0 40px 200px;
     max-width: 720px;
     margin: 0 auto;
+    scroll-snap-align: start;
 }
 
 .comparison-list {
@@ -338,6 +344,11 @@ pre.code-block {
     max-width: 620px;
     margin: 0 auto;
     text-align: center;
+    scroll-snap-align: start;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .specs-grid {
@@ -365,6 +376,7 @@ pre.code-block {
     padding: 80px 40px 60px;
     text-align: center;
     border-top: 1px solid var(--border);
+    scroll-snap-align: end;
 }
 
 .footer-logo {
