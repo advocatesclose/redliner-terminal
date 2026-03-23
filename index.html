@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redliner — Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg: #0a0a0b;
+    --surface: #111113;
+    --border: #1a1a1a;
+    --text: #d4d4d4;
+    --muted: #707070;
+    --very-muted: #404040;
+    --dim: #505050;
+    --subtle: #606060;
+    --crimson: #c8302a;
+    --blue: #5b9bf5;
+    --gold: #b8902a;
+    --mono: 'Fira Code', 'SF Mono', 'Cascadia Code', 'JetBrains Mono', monospace;
+    --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+}
+
+/* Masthead */
+.masthead {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 40px;
+}
+
+.masthead-logo {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text);
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.masthead-logo .dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--crimson);
+    border-radius: 50%;
+    margin-left: 1px;
+}
+
+.masthead-right {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+/* Reveal animation */
+.reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Hero */
+.hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 120px 40px 80px;
+    text-align: center;
+}
+
+.hero-prompt {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--dim);
+    margin-bottom: 24px;
+}
+
+.hero-headline {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: clamp(2.8rem, 5vw, 5rem);
+    color: var(--text);
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+}
+
+.hero-headline .line2 {
+    font-weight: 400;
+    color: var(--blue);
+}
+
+.hero-subhead {
+    margin-top: 40px;
+    font-family: var(--mono);
+    font-size: 1rem;
+    line-height: 1.8;
+    color: var(--subtle);
+}
+
+.hero-subhead .comment-slash {
+    color: var(--very-muted);
+}
+
+.hero-code {
+    margin-top: 60px;
+    width: 100%;
+    max-width: 720px;
+}
+
+/* Code blocks */
+pre.code-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 32px;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    line-height: 1.7;
+    overflow-x: auto;
+    text-align: left;
+    color: var(--text);
+}
+
+.kw { color: var(--crimson); }
+.tp { color: var(--blue); }
+.str { color: var(--gold); }
+.fn { color: var(--text); }
+.prop { color: #909090; }
+.cmt { color: var(--dim); }
+.punc { color: var(--subtle); }
+
+/* Statement sections */
+.statement-section {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 40px;
+    text-align: center;
+}
+
+.statement {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: clamp(1.6rem, 2.8vw, 2.4rem);
+    color: var(--text);
+    line-height: 1.4;
+    letter-spacing: -0.02em;
+    max-width: 800px;
+}
+
+.statement .blue {
+    color: var(--blue);
+    font-weight: 400;
+}
+
+.statement-attribution {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--dim);
+    margin-top: 32px;
+}
+
+.statement-sub {
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    color: var(--dim);
+    margin-top: 32px;
+}
+
+/* Essay */
+.essay-section {
+    padding: 120px 40px 200px;
+    max-width: 620px;
+    margin: 0 auto;
+}
+
+.section-label {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: var(--dim);
+    letter-spacing: 0.15em;
+    margin-bottom: 40px;
+}
+
+.essay-section p {
+    font-family: var(--sans);
+    font-size: 1.05rem;
+    color: #909090;
+    line-height: 1.85;
+    margin-bottom: 28px;
+}
+
+.essay-section p.lead {
+    color: #b0b0b0;
+    font-size: 1.15rem;
+}
+
+/* Architecture */
+.architecture-section {
+    padding: 0 40px 120px;
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.arch-list {
+    margin-top: 60px;
+}
+
+.arch-item {
+    display: flex;
+    gap: 32px;
+    padding: 40px 0;
+    border-top: 1px solid var(--border);
+}
+
+.arch-item:last-child {
+    border-bottom: 1px solid var(--border);
+}
+
+.arch-number {
+    font-family: var(--mono);
+    font-size: 3rem;
+    font-weight: 300;
+    color: var(--border);
+    line-height: 1;
+    flex-shrink: 0;
+    width: 60px;
+}
+
+.arch-content {
+    flex: 1;
+}
+
+.arch-title {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: var(--text);
+    margin-bottom: 12px;
+}
+
+.arch-desc {
+    font-family: var(--sans);
+    font-size: 0.95rem;
+    color: var(--muted);
+    line-height: 1.7;
+}
+
+.arch-code {
+    max-width: 720px;
+    margin: 80px auto 0;
+    padding: 0 40px;
+}
+
+/* Comparison */
+.comparison-section {
+    padding: 0 40px 200px;
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.comparison-list {
+    margin-top: 60px;
+}
+
+.comparison-pair {
+    margin-bottom: 48px;
+}
+
+.comparison-old {
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    color: var(--dim);
+    text-decoration: line-through;
+    text-decoration-color: var(--crimson);
+    line-height: 1.6;
+    margin-bottom: 8px;
+}
+
+.comparison-new {
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    color: var(--text);
+    line-height: 1.6;
+}
+
+.comparison-new .blue {
+    color: var(--blue);
+}
+
+/* Specs */
+.specs-section {
+    padding: 0 40px 200px;
+    max-width: 620px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.specs-grid {
+    margin-top: 48px;
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+    line-height: 2.2;
+}
+
+.specs-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.specs-row span {
+    flex: 1;
+    text-align: center;
+}
+
+/* Footer */
+.footer {
+    padding: 80px 40px 60px;
+    text-align: center;
+    border-top: 1px solid var(--border);
+}
+
+.footer-logo {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text);
+    margin-bottom: 16px;
+}
+
+.footer-logo .dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--crimson);
+    border-radius: 50%;
+    margin-left: 1px;
+    vertical-align: middle;
+}
+
+.footer-location {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--dim);
+    margin-bottom: 8px;
+}
+
+.footer-tech {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--very-muted);
+    margin-bottom: 32px;
+}
+
+.footer-crosslink {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--very-muted);
+    line-height: 2;
+}
+
+.footer-crosslink a {
+    color: var(--dim);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border);
+    transition: color 0.2s;
+}
+
+.footer-crosslink a:hover {
+    color: var(--blue);
+}
+
+.footer-crosslink .current {
+    color: var(--subtle);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .masthead {
+        padding: 14px 20px;
+    }
+
+    .hero {
+        padding: 100px 24px 60px;
+    }
+
+    .hero-headline {
+        font-size: clamp(2rem, 8vw, 2.8rem);
+    }
+
+    .hero-subhead {
+        font-size: 0.85rem;
+    }
+
+    pre.code-block {
+        font-size: 0.72rem;
+        padding: 20px;
+    }
+
+    .statement {
+        font-size: clamp(1.3rem, 5vw, 1.8rem);
+    }
+
+    .statement-section {
+        padding: 60px 24px;
+    }
+
+    .essay-section {
+        padding: 80px 24px 140px;
+    }
+
+    .architecture-section,
+    .comparison-section,
+    .specs-section {
+        padding-left: 24px;
+        padding-right: 24px;
+    }
+
+    .arch-item {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .arch-number {
+        font-size: 2rem;
+    }
+
+    .arch-code {
+        padding: 0 24px;
+    }
+
+    .specs-row {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .specs-row span {
+        text-align: center;
+    }
+
+    .comparison-old,
+    .comparison-new {
+        font-size: 0.8rem;
+    }
+
+    .hero-code {
+        margin-top: 40px;
+    }
+}
+</style>
+</head>
+<body>
+
+<!-- Masthead -->
+<nav class="masthead">
+    <div class="masthead-logo">Redliner<span class="dot"></span></div>
+    <div class="masthead-right">ADVOCATES CLOSE / NEW YORK</div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+    <div class="reveal">
+        <div class="hero-prompt">$ redliner</div>
+        <h1 class="hero-headline">
+            Change once.<br>
+            <span class="line2">Publish everywhere.</span>
+        </h1>
+        <div class="hero-subhead">
+            <span class="comment-slash">//</span> Edit a document. The redline, the PDF, the Word file,<br>
+            <span class="comment-slash">//</span> and the HTML update simultaneously.
+        </div>
+    </div>
+    <div class="hero-code reveal">
+<pre class="code-block"><span class="kw">static</span> <span class="kw">func</span> <span class="fn">batchRedline</span><span class="punc">(</span>jobs<span class="punc">:</span> <span class="punc">[</span><span class="tp">RedlineJob</span><span class="punc">]</span><span class="punc">)</span> <span class="kw">async</span> <span class="kw">throws</span> <span class="punc">-></span> <span class="punc">[</span><span class="tp">RedlineResult</span><span class="punc">]</span> <span class="punc">{</span>
+    <span class="kw">try</span> <span class="kw">await</span> <span class="fn">withThrowingTaskGroup</span><span class="punc">(</span>of<span class="punc">:</span> <span class="tp">RedlineResult</span><span class="prop">.self</span><span class="punc">)</span> <span class="punc">{</span> group <span class="kw">in</span>
+        <span class="kw">for</span> job <span class="kw">in</span> jobs <span class="punc">{</span>
+            group<span class="punc">.</span><span class="fn">addTask</span> <span class="punc">{</span>
+                <span class="kw">let</span> start <span class="punc">=</span> <span class="fn">CFAbsoluteTimeGetCurrent</span><span class="punc">()</span>
+                <span class="kw">let</span> outputURL <span class="punc">=</span> <span class="kw">try</span> <span class="kw">await</span> <span class="fn">redline</span><span class="punc">(</span>base<span class="punc">:</span> job<span class="prop">.baseURL</span><span class="punc">,</span> modified<span class="punc">:</span> job<span class="prop">.modifiedURL</span><span class="punc">)</span>
+                <span class="kw">let</span> duration <span class="punc">=</span> <span class="fn">CFAbsoluteTimeGetCurrent</span><span class="punc">()</span> <span class="punc">-</span> start
+                <span class="kw">return</span> <span class="tp">RedlineResult</span><span class="punc">(</span>label<span class="punc">:</span> job<span class="prop">.label</span><span class="punc">,</span> outputURL<span class="punc">:</span> outputURL<span class="punc">,</span> duration<span class="punc">:</span> duration<span class="punc">)</span>
+            <span class="punc">}</span>
+        <span class="punc">}</span>
+        <span class="kw">var</span> results<span class="punc">:</span> <span class="punc">[</span><span class="tp">RedlineResult</span><span class="punc">]</span> <span class="punc">=</span> <span class="punc">[]</span>
+        <span class="kw">for</span> <span class="kw">try</span> <span class="kw">await</span> result <span class="kw">in</span> group <span class="punc">{</span>
+            results<span class="punc">.</span><span class="fn">append</span><span class="punc">(</span>result<span class="punc">)</span>
+        <span class="punc">}</span>
+        <span class="kw">return</span> results
+    <span class="punc">}</span>
+<span class="punc">}</span></pre>
+    </div>
+</section>
+
+<!-- Opening Statement -->
+<section class="statement-section">
+    <div class="reveal">
+        <p class="statement">Programmers have developed an astonishing array of tools for managing complexity. We are interested in bringing these tools to bear on <span class="blue">the practice of law.</span></p>
+        <p class="statement-attribution">&mdash; Advocates Close, New York</p>
+    </div>
+</section>
+
+<!-- Essay -->
+<section class="essay-section">
+    <div class="reveal">
+        <div class="section-label">on complexity</div>
+    </div>
+    <div class="reveal">
+        <p class="lead">Computer programmers as we know them today have existed for less than a century. They are not credentialed or licensed. They do not sit an exam.</p>
+    </div>
+    <div class="reveal">
+        <p>And yet the things entrusted to computer programs are not somehow less important than the things entrusted to professionals who do. A Boeing 747 does not stay aloft because it is required by law to do so. It stays aloft because it is governed by computer programs that make it able to do so. How this is possible is worth understanding.</p>
+    </div>
+    <div class="reveal">
+        <p>Over a remarkably short period, programmers have developed tools, practices, and protocols for building large-scale systems that interoperate with one another. iPhones are not less useful when three billion people have one. The tools do not degrade with scale.</p>
+    </div>
+    <div class="reveal">
+        <p>Laws, by contrast, become harder to use when the number of people who must apply them increases. It is not obvious that this limitation reflects some fundamental constraint. It may simply reflect a gap in tooling.</p>
+    </div>
+</section>
+
+<!-- Core Insight -->
+<section class="statement-section">
+    <div class="reveal">
+        <p class="statement">If you print a document to Word and then print it to PDF, you have not done <span class="blue">one thing twice.</span> You have done <span class="blue">two things</span> once each.</p>
+        <p class="statement-sub">Printing is printing. Redlining is redlining.</p>
+    </div>
+</section>
+
+<!-- Architecture -->
+<section class="architecture-section">
+    <div class="reveal">
+        <div class="section-label">architecture</div>
+    </div>
+    <div class="arch-list">
+        <div class="arch-item reveal">
+            <div class="arch-number">01</div>
+            <div class="arch-content">
+                <div class="arch-title">XPC Services</div>
+                <div class="arch-desc">Document conversion and redline generation run in dedicated XPC services&thinsp;&mdash;&thinsp;separate processes with independent memory spaces, managed by launchd, created and destroyed on demand.</div>
+            </div>
+        </div>
+        <div class="arch-item reveal">
+            <div class="arch-number">02</div>
+            <div class="arch-content">
+                <div class="arch-title">Parallel Redlining</div>
+                <div class="arch-desc">The redline engine implements a word-level Myers diff. Multiple redlines execute in parallel&thinsp;&mdash;&thinsp;each with its own NSXPCConnection, its own handler, its own coordinated file access via NSFileCoordinator.</div>
+            </div>
+        </div>
+        <div class="arch-item reveal">
+            <div class="arch-number">03</div>
+            <div class="arch-content">
+                <div class="arch-title">Zero-Copy IPC</div>
+                <div class="arch-desc">No document content crosses the XPC boundary. The app passes file paths; the services read, process, and write directly to the filesystem.</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="arch-code reveal">
+<pre class="code-block"><span class="kw">let</span> connection <span class="punc">=</span> <span class="tp">NSXPCConnection</span><span class="punc">(</span>serviceName<span class="punc">:</span> <span class="str">"com.advocatesclose.markup.RedlineService"</span><span class="punc">)</span>
+connection<span class="prop">.remoteObjectInterface</span> <span class="punc">=</span> <span class="tp">NSXPCInterface</span><span class="punc">(</span>with<span class="punc">:</span> <span class="tp">RedlineServiceProtocol</span><span class="prop">.self</span><span class="punc">)</span>
+connection<span class="punc">.</span><span class="fn">resume</span><span class="punc">()</span>
+
+<span class="kw">let</span> proxy <span class="punc">=</span> connection<span class="punc">.</span><span class="fn">remoteObjectProxyWithErrorHandler</span> <span class="punc">{</span> error <span class="kw">in</span>
+    continuation<span class="punc">.</span><span class="fn">resume</span><span class="punc">(</span>throwing<span class="punc">:</span> error<span class="punc">)</span>
+    connection<span class="punc">.</span><span class="fn">invalidate</span><span class="punc">()</span>
+<span class="punc">}</span> <span class="kw">as</span><span class="punc">!</span> <span class="tp">RedlineServiceProtocol</span>
+
+proxy<span class="punc">.</span><span class="fn">redline</span><span class="punc">(</span>
+    base<span class="punc">:</span> baseURL<span class="prop">.path</span><span class="punc">,</span>
+    modified<span class="punc">:</span> modifiedURL<span class="prop">.path</span><span class="punc">,</span>
+    output<span class="punc">:</span> outputURL<span class="prop">.path</span>
+<span class="punc">)</span> <span class="punc">{</span> path<span class="punc">,</span> error <span class="kw">in</span>
+    <span class="cmt">// ...</span>
+    connection<span class="punc">.</span><span class="fn">invalidate</span><span class="punc">()</span>
+<span class="punc">}</span></pre>
+</div>
+
+<!-- Privacy -->
+<section class="statement-section">
+    <div class="reveal">
+        <p class="statement">Privacy is not a trade-off. It is a <span class="blue">design constraint.</span></p>
+        <p class="statement-sub">Separate processes. Separate memory. No content on the wire.</p>
+    </div>
+</section>
+
+<!-- Comparison -->
+<section class="comparison-section">
+    <div class="reveal">
+        <div class="section-label">conventional vs. redliner</div>
+    </div>
+    <div class="comparison-list">
+        <div class="comparison-pair reveal">
+            <div class="comparison-old">Print to Word, then print to PDF — two jobs</div>
+            <div class="comparison-new">One edit propagates to HTML, PDF, and DOCX <span class="blue">simultaneously</span> via XPC</div>
+        </div>
+        <div class="comparison-pair reveal">
+            <div class="comparison-old">Run a redline manually after each revision</div>
+            <div class="comparison-new">Redlines exist as a matter of <span class="blue">process</span> — they are produced, not requested</div>
+        </div>
+        <div class="comparison-pair reveal">
+            <div class="comparison-old">Choose between privacy and performance</div>
+            <div class="comparison-new"><span class="blue">XPC isolation</span> — separate process memory, no content on the wire, no trade-off</div>
+        </div>
+        <div class="comparison-pair reveal">
+            <div class="comparison-old">Wait for one conversion to finish before starting the next</div>
+            <div class="comparison-new"><span class="blue">Parallel execution</span> — ten redlines at once, each in its own process</div>
+        </div>
+    </div>
+</section>
+
+<!-- Specs -->
+<section class="specs-section">
+    <div class="reveal">
+        <div class="section-label">frameworks</div>
+    </div>
+    <div class="specs-grid reveal">
+        <div class="specs-row">
+            <span>NSXPCConnection</span>
+            <span>NSXPCListener</span>
+            <span>NSFileCoordinator</span>
+        </div>
+        <div class="specs-row">
+            <span>SwiftData</span>
+            <span>StoreKit 2</span>
+            <span>TextKit 2</span>
+        </div>
+        <div class="specs-row">
+            <span>swift-markdown</span>
+            <span>Pandoc</span>
+            <span>AES-GCM</span>
+        </div>
+    </div>
+</section>
+
+<!-- Closing -->
+<section class="statement-section">
+    <div class="reveal">
+        <p class="statement">A single edit should propagate to every output as a matter of <span class="blue">architecture,</span> not effort.</p>
+        <p class="statement-sub">This is what we build.</p>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="footer-logo">Redliner<span class="dot"></span></div>
+    <div class="footer-location">Advocates Close &middot; New York</div>
+    <div class="footer-tech">macOS 15+ &middot; Swift 6</div>
+    <div class="footer-crosslink">
+        This content exists in three renderings.<br>
+        <a href="https://advocatesclose.github.io/redliner-editorial/">editorial</a> &middot;
+        <a href="https://advocatesclose.github.io/redliner-site/">technical</a> &middot;
+        <span class="current">terminal</span>
+    </div>
+</footer>
+
+<script>
+// IntersectionObserver for reveal-on-scroll
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+        }
+    });
+}, {
+    threshold: 0.15,
+    rootMargin: '0px 0px -40px 0px'
+});
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>
